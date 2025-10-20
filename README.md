@@ -87,6 +87,30 @@ encdec verify --alg rsa --sig-alg sha256withrsa \
     --public-key public.pem --input-file document.pdf --signature doc.sig
 ```
 
+## 🏗️ Project Directory Structure
+
+The project follows standard Cargo conventions, ensuring clear separation between the command-line interface logic (`cli.rs`) and the core cryptographic implementation (`crypto/`).
+
+```text
+encdec/
+├── Cargo.toml
+├── README.md             
+├── src/
+│   ├── main.rs           # Main entry point, calls cli::run()
+│   ├── cli.rs            # Defines Clap CLI structure, handles argument parsing and command dispatch
+│   ├── types.rs          # Shared Enums: Algorithm, Mode, Padding, Encoding, etc.
+│   ├── error.rs          # Custom error handling structure (e.g., CryptoError)
+│   ├── util.rs           # Utility functions: Hex/Base64 encoding/decoding, general file I/O helpers.
+│   └── crypto/           # Core Cryptographic Implementations
+│       ├── mod.rs        # Declares public modules (aes, des, rsa)
+│       ├── aes.rs        # AES logic (KeyGen, CBC, GCM, Enc/Dec)
+│       ├── des.rs        # DES/Triple DES logic (Legacy implementation)
+│       └── rsa.rs        # RSA logic (KeyGen, Enc/Dec, Sign/Verify, Chunking)
+└── tests/
+    ├── integration_tests.rs # E2E tests for CLI commands
+    └── crypto_vectors.rs  # Unit tests using known cryptographic test vectors
+```
+
 ## 🗺️ Implementation Roadmap
 
 The development will follow a phased approach, prioritizing security and core functionality.
