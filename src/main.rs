@@ -1,3 +1,8 @@
+mod cli;
+
 fn main() {
-    println!("Hello, world!");
+    if let Err(error) = cli::run() {
+        eprintln!("Error: {:#}", error);
+        std::process::exit(1);
+    }
 }
