@@ -1,38 +1,6 @@
 use anyhow::{bail, Result};
-use clap::{Args, Parser, Subcommand, ValueEnum};
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
-pub enum Algorithm {
-    Aes,
-    Des,
-    Rsa,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
-pub enum Mode {
-    Cbc,
-    Gcm,
-    Ecb,
-    Ctr,
-    Ofb,
-    Cfb,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
-pub enum Padding {
-    Pkcs5,
-    NoPadding,
-    // RSA paddings
-    Pkcs1,
-    OaepSha256,
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
-pub enum OutputEncoding {
-    Utf8,
-    Base64,
-    Hex,
-}
+use clap::{Args, Parser, Subcommand};
+use crate::types::{Algorithm, Mode, Padding, OutputEncoding};
 
 #[derive(Debug, Parser)]
 #[command(name = "encdec", about = "Cryptography CLI utility", version)]

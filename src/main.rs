@@ -1,4 +1,5 @@
 mod cli;
+mod types;
 
 fn main() {
     if let Err(error) = cli::run() {
