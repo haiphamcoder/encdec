@@ -1,6 +1,6 @@
-use anyhow::{bail, Result};
+use crate::types::{Algorithm, Mode, OutputEncoding, Padding};
+use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
-use crate::types::{Algorithm, Mode, Padding, OutputEncoding};
 
 #[derive(Debug, Parser)]
 #[command(name = "encdec", about = "Cryptography CLI utility", version)]
@@ -195,4 +195,3 @@ fn validate_input_source(input_data: &Option<String>, input_file: &Option<String
     }
     Ok(())
 }
-

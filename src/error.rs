@@ -43,4 +43,3 @@ impl From<String> for CryptoError {
         CryptoError::Message(value)
     }
 }
-
