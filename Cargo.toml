@@ -4,3 +4,32 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4.5", features = ["derive"] } # CLI argument parsing with derive macros
+
+# Symmetric crypto (RustCrypto)
+aes = "0.8" # AES block cipher primitives
+aes-gcm = { version = "0.10", features = ["aes"] } # AEAD: authenticated encryption (preferred AES-GCM)
+block-modes = "0.9" # CBC/CFB/OFB/CTR modes for block ciphers
+block-padding = "0.3" # PKCS7/ZeroPadding for block modes
+des = "0.8" # Legacy DES/3DES support (compatibility only)
+
+# Asymmetric crypto
+rsa = { version = "0.9", features = ["pem"] } # RSA encrypt/decrypt/sign/verify, PEM key I/O
+rand = "0.8" # CSPRNG for key generation
+sha2 = "0.10" # SHA-256/384/512 for PBKDF2/HMAC and RSA OAEP
+
+# Key format support
+pkcs8 = "0.10" # Read/write PKCS#8 private keys
+
+# KDF
+pbkdf2 = "0.12" # Password-based key derivation (HMAC-SHA256)
+hmac = "0.12" # HMAC construction used by PBKDF2
+
+# Encoding & utilities
+base64 = "0.22" # Base64 encoding/decoding for CLI I/O
+hex = "0.4" # Hex encoding/decoding helpers
+zeroize = { version = "1.7", features = ["zeroize_derive"] } # Securely zero memory of secrets
+
+# Error handling
+thiserror = "1.0" # Derive-based custom error types
+anyhow = "1.0" # Ergonomic error handling in CLI
