@@ -309,8 +309,12 @@ fn handle_encrypt(args: CryptoArgs) -> Result<()> {
                 ));
             };
             
-            // Use chunked encryption for RSA
-            rsa::encrypt_chunked(&data, &public_key, args.padding)?
+            // Use chunked encryption for RSA (force PKCS1 padding for RSA)
+            let rsa_padding = match args.padding {
+                Padding::Pkcs1 | Padding::OaepSha256 => args.padding,
+                _ => Padding::Pkcs1, // Default to PKCS1 for RSA
+            };
+            rsa::encrypt_chunked(&data, &public_key, rsa_padding)?
         }
     };
     
@@ -492,8 +496,12 @@ fn handle_decrypt(args: CryptoArgs) -> Result<()> {
                 return Err(crate::error::CryptoError::InvalidArgument("RSA decryption requires --private-key".to_string()));
             };
             
-            // Use chunked decryption for RSA
-            rsa::decrypt_chunked(&data, &private_key, args.padding)?
+            // Use chunked decryption for RSA (force PKCS1 padding for RSA)
+            let rsa_padding = match args.padding {
+                Padding::Pkcs1 | Padding::OaepSha256 => args.padding,
+                _ => Padding::Pkcs1, // Default to PKCS1 for RSA
+            };
+            rsa::decrypt_chunked(&data, &private_key, rsa_padding)?
         }
     };
     

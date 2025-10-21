@@ -57,19 +57,25 @@ pub fn encrypt_cbc(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
         return Err(CryptoError::InvalidArgument("DES requires 8-byte IV".to_string()));
     }
     
-    // Calculate required buffer size (data + padding)
+    // Create a buffer that's large enough for the data plus PKCS7 padding
+    // PKCS7 always adds at least 1 byte, so we need to add an extra block if data is block-aligned
     let block_size = 8; // DES block size
-    let padded_len = ((data.len() + block_size - 1) / block_size) * block_size;
+    let padded_len = ((data.len() / block_size) + 1) * block_size;
     let mut buffer = vec![0u8; padded_len];
     buffer[..data.len()].copy_from_slice(data);
     
     let cipher = Encryptor::<Des>::new_from_slices(key, iv)
         .map_err(|_| CryptoError::InvalidArgument("Invalid key or IV".to_string()))?;
     
-    cipher.encrypt_padded_mut::<cbc::cipher::block_padding::Pkcs7>(&mut buffer, data.len())
-        .map_err(|_| CryptoError::InvalidArgument("Encryption failed".to_string()))?;
-    
-    Ok(buffer)
+    // Use encrypt_padded_mut with the correct buffer size
+    let result = cipher.encrypt_padded_mut::<cbc::cipher::block_padding::Pkcs7>(&mut buffer, data.len());
+    match result {
+        Ok(ciphertext) => {
+            // Return the actual ciphertext length
+            Ok(ciphertext.to_vec())
+        },
+        Err(e) => Err(CryptoError::InvalidArgument(format!("Encryption failed: {:?}", e))),
+    }
 }
 
 pub fn decrypt_cbc(ciphertext: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
