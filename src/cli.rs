@@ -1,7 +1,7 @@
 use crate::types::{Algorithm, Mode, OutputEncoding, Padding};
 use crate::crypto::{aes, des, rsa};
-use crate::error::Result;
-use crate::util::{read_input, write_output, InputSource, OutputTarget, base64_encode, hex_encode};
+use crate::error::{CryptoError, Result};
+use crate::util::{read_input, write_output, InputSource, OutputTarget, base64_encode, hex_encode, base64_decode};
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -171,8 +171,10 @@ fn handle_encrypt(args: CryptoArgs) -> Result<()> {
     };
     let data = read_input(input_source)?;
     
-    // Load key
-    let key = if let Some(key_str) = &args.key {
+    // Load key (only for symmetric algorithms)
+    let key = if args.algorithm == Algorithm::Rsa {
+        Vec::new() // RSA doesn't use symmetric keys
+    } else if let Some(key_str) = &args.key {
         load_key_from_string(key_str, args.algorithm)?
     } else if let Some(key_file) = &args.key_file {
         load_key_from_file(key_file, args.algorithm)?
@@ -181,16 +183,35 @@ fn handle_encrypt(args: CryptoArgs) -> Result<()> {
     };
     
     // Encrypt data
-    let (ciphertext, iv_or_nonce) = match args.algorithm {
-        Algorithm::Aes => aes::encrypt(&data, &key, args.mode, args.padding)?,
-        Algorithm::Des => des::encrypt(&data, &key, args.mode, args.padding)?,
-        Algorithm::Rsa => return Err(crate::error::CryptoError::InvalidArgument("Use RSA-specific commands for RSA encryption".to_string())),
+    let output = match args.algorithm {
+        Algorithm::Aes => {
+            let (ciphertext, iv_or_nonce) = aes::encrypt(&data, &key, args.mode, args.padding)?;
+            // Combine IV/nonce with ciphertext for output
+            let mut output = Vec::new();
+            output.extend_from_slice(&iv_or_nonce);
+            output.extend_from_slice(&ciphertext);
+            output
+        }
+        Algorithm::Des => {
+            let (ciphertext, iv_or_nonce) = des::encrypt(&data, &key, args.mode, args.padding)?;
+            // Combine IV/nonce with ciphertext for output
+            let mut output = Vec::new();
+            output.extend_from_slice(&iv_or_nonce);
+            output.extend_from_slice(&ciphertext);
+            output
+        }
+        Algorithm::Rsa => {
+            // Load RSA public key
+            let public_key = if let Some(key_path) = &args.public_key {
+                rsa::load_public_key_pem(key_path)?
+            } else {
+                return Err(crate::error::CryptoError::InvalidArgument("RSA encryption requires --public-key".to_string()));
+            };
+            
+            // Use chunked encryption for RSA
+            rsa::encrypt_chunked(&data, &public_key, args.padding)?
+        }
     };
-    
-    // Combine IV/nonce with ciphertext for output
-    let mut output = Vec::new();
-    output.extend_from_slice(&iv_or_nonce);
-    output.extend_from_slice(&ciphertext);
     
     // Output result
     let output_target = if let Some(file) = &args.output_file {
@@ -200,10 +221,22 @@ fn handle_encrypt(args: CryptoArgs) -> Result<()> {
     };
     
     if matches!(output_target, OutputTarget::Stdout) {
-        let formatted = format_output(&output, args.output_encoding);
+        let formatted = if args.algorithm == Algorithm::Rsa {
+            // For RSA, always output as base64 for consistency
+            base64_encode(&output)
+        } else {
+            format_output(&output, args.output_encoding)
+        };
         println!("{}", formatted);
     } else {
-        write_output(output_target, &output)?;
+        if args.algorithm == Algorithm::Rsa {
+            // For RSA, write base64 encoded data
+            let formatted = base64_encode(&output);
+            write_output(output_target, formatted.as_bytes())?;
+        } else {
+            // For symmetric algorithms, write raw bytes
+            write_output(output_target, &output)?;
+        }
         println!("Encrypted data saved to file");
     }
     
@@ -214,52 +247,84 @@ fn handle_decrypt(args: CryptoArgs) -> Result<()> {
     validate_input_source(&args.input_data, &args.input_file)?;
     
     // Load input data
-    let input_source = if let Some(data) = &args.input_data {
-        InputSource::Inline(data)
-    } else {
-        InputSource::File(args.input_file.as_ref().unwrap())
-    };
-    let data = read_input(input_source)?;
-    
-    // Load key
-    let key = if let Some(key_str) = &args.key {
-        load_key_from_string(key_str, args.algorithm)?
-    } else if let Some(key_file) = &args.key_file {
-        load_key_from_file(key_file, args.algorithm)?
-    } else {
-        return Err(crate::error::CryptoError::InvalidArgument("Must provide either --key or --key-file".to_string()));
-    };
-    
-    // Extract IV/nonce and ciphertext
-    let (iv_or_nonce, ciphertext) = match args.algorithm {
-        Algorithm::Aes => {
-            let iv_len = match args.mode {
-                Mode::Cbc => 16,
-                Mode::Gcm => 12,
-                _ => return Err(crate::error::CryptoError::InvalidArgument("Unsupported mode for decryption".to_string())),
-            };
-            if data.len() < iv_len {
-                return Err(crate::error::CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
-            }
-            let (iv, cipher) = data.split_at(iv_len);
-            (iv.to_vec(), cipher.to_vec())
+    let data = if args.algorithm == Algorithm::Rsa {
+        // For RSA, handle base64 decoding of input data
+        if let Some(data) = &args.input_data {
+            // Assume input data is base64 encoded for RSA
+            base64_decode(data)?
+        } else {
+            // For file input, assume it's base64 encoded (since we save RSA as base64)
+            let input_source = InputSource::File(args.input_file.as_ref().unwrap());
+            let file_data = read_input(input_source)?;
+            let file_str = String::from_utf8(file_data)
+                .map_err(|_| CryptoError::InvalidArgument("Invalid file encoding for RSA decryption".to_string()))?;
+            base64_decode(&file_str)?
         }
-        Algorithm::Des => {
-            let iv_len = 8; // DES block size
-            if data.len() < iv_len {
-                return Err(crate::error::CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
-            }
-            let (iv, cipher) = data.split_at(iv_len);
-            (iv.to_vec(), cipher.to_vec())
-        }
-        Algorithm::Rsa => return Err(crate::error::CryptoError::InvalidArgument("Use RSA-specific commands for RSA decryption".to_string())),
+    } else {
+        // For symmetric algorithms, use normal input handling
+        let input_source = if let Some(data) = &args.input_data {
+            InputSource::Inline(data)
+        } else {
+            InputSource::File(args.input_file.as_ref().unwrap())
+        };
+        read_input(input_source)?
     };
     
-    // Decrypt data
+    // Decrypt data based on algorithm
     let plaintext = match args.algorithm {
-        Algorithm::Aes => aes::decrypt(&ciphertext, &key, args.mode, args.padding, &iv_or_nonce)?,
-        Algorithm::Des => des::decrypt(&ciphertext, &key, args.mode, args.padding, &iv_or_nonce)?,
-        Algorithm::Rsa => return Err(crate::error::CryptoError::InvalidArgument("Use RSA-specific commands for RSA decryption".to_string())),
+        Algorithm::Aes | Algorithm::Des => {
+            // Load symmetric key
+            let key = if let Some(key_str) = &args.key {
+                load_key_from_string(key_str, args.algorithm)?
+            } else if let Some(key_file) = &args.key_file {
+                load_key_from_file(key_file, args.algorithm)?
+            } else {
+                return Err(crate::error::CryptoError::InvalidArgument("Must provide either --key or --key-file".to_string()));
+            };
+            
+            // Extract IV/nonce and ciphertext
+            let (iv_or_nonce, ciphertext) = match args.algorithm {
+                Algorithm::Aes => {
+                    let iv_len = match args.mode {
+                        Mode::Cbc => 16,
+                        Mode::Gcm => 12,
+                        _ => return Err(crate::error::CryptoError::InvalidArgument("Unsupported mode for decryption".to_string())),
+                    };
+                    if data.len() < iv_len {
+                        return Err(crate::error::CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
+                    }
+                    let (iv, cipher) = data.split_at(iv_len);
+                    (iv.to_vec(), cipher.to_vec())
+                }
+                Algorithm::Des => {
+                    let iv_len = 8; // DES block size
+                    if data.len() < iv_len {
+                        return Err(crate::error::CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
+                    }
+                    let (iv, cipher) = data.split_at(iv_len);
+                    (iv.to_vec(), cipher.to_vec())
+                }
+                _ => unreachable!(),
+            };
+            
+            // Decrypt symmetric data
+            match args.algorithm {
+                Algorithm::Aes => aes::decrypt(&ciphertext, &key, args.mode, args.padding, &iv_or_nonce)?,
+                Algorithm::Des => des::decrypt(&ciphertext, &key, args.mode, args.padding, &iv_or_nonce)?,
+                _ => unreachable!(),
+            }
+        }
+        Algorithm::Rsa => {
+            // Load RSA private key
+            let private_key = if let Some(key_path) = &args.private_key {
+                rsa::load_private_key_pem(key_path)?
+            } else {
+                return Err(crate::error::CryptoError::InvalidArgument("RSA decryption requires --private-key".to_string()));
+            };
+            
+            // Use chunked decryption for RSA
+            rsa::decrypt_chunked(&data, &private_key, args.padding)?
+        }
     };
     
     // Output result

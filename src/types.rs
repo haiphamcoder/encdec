@@ -23,6 +23,7 @@ pub enum Padding {
     NoPadding,
     // RSA paddings
     Pkcs1,
+    #[value(name = "oaep-sha256")]
     OaepSha256,
 }
 
