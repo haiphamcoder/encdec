@@ -218,7 +218,6 @@ fn test_rsa_pem_key_serialization() {
 
 #[test]
 fn test_error_handling() {
-
     // Test invalid key size
     let result = aes::generate_key(128);
     assert!(result.is_ok());

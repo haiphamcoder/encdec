@@ -1,9 +1,9 @@
 mod cli;
-mod types;
-mod error;
-mod util;
 mod crypto;
+mod error;
 mod streaming;
+mod types;
+mod util;
 
 fn main() {
     if let Err(error) = cli::run() {
