@@ -134,19 +134,75 @@ encdec encrypt --alg aes --mode cbc --key "8a9+ZkxN/npiKIO8OSQmIGdxY8ia/LHxQ5w5x
 
 **Note:** Encrypted output includes IV/nonce prepended to ciphertext for proper decryption.
 
-### 3\. Asymmetric Encryption (RSA)
+### 3. Asymmetric Encryption (RSA) ✅
 
 Encrypts with a public key and decrypts with a private key.
 
-```bash
-# Encrypt data using an RSA public key with OAEP padding
-encdec encrypt --alg rsa --padding oaep_sha256 --public-key public.pem \
-    --input-file sensitive.dat --output-file sensitive.enc
+#### RSA Key Generation
 
-# Decrypt data using the corresponding private key
-encdec decrypt --alg rsa --padding oaep_sha256 --private-key private.pem \
-    --input-file sensitive.enc --output-file sensitive.dat
+```bash
+# Generate RSA-2048 key pair
+encdec keygen --alg rsa --size 2048 --private-out private.pem --public-out public.pem
+
+# Generate RSA-4096 key pair
+encdec keygen --alg rsa --size 4096 --private-out private_4096.pem --public-out public_4096.pem
 ```
+
+#### RSA Encryption/Decryption
+
+```bash
+# Encrypt string with PKCS1 padding
+encdec encrypt --alg rsa --padding pkcs1 --public-key public.pem \
+    --input-data "Secret message" --output-encoding base64
+
+# Encrypt file with OAEP-SHA256 padding
+encdec encrypt --alg rsa --padding oaep-sha256 --public-key public.pem \
+    --input-file document.pdf --output-file document.enc
+
+# Decrypt with PKCS1 padding
+encdec decrypt --alg rsa --padding pkcs1 --private-key private.pem \
+    --input-file document.enc --output-file document.pdf
+
+# Decrypt base64 string with OAEP-SHA256
+echo "AAABAKjKVaVaJ9ZwPVxzxoje2KSvp+Sd8L7bFlaYBqL7cvI9d24q5bUvgnjMTaTgq/apbsI08nezGa3JRCKrXs+BX/neyKa4cMwhiNSXz+/AHBjmg6ZdkjhxzWDDfPEvHH/8jTmVooSb5SM/PPoAWUNf14/skcntGeu+aGv1XutsL1xG8krHn/rmhYT8GKFnunRPOy0e/iVyzOLSTfLwIoUu+TB+0AzrsvVsTe1SmuSRdjrqm5nJkID3cKCPLsNUZx2dkW/L98rGRT/BP3f/8B1K4Nk4X4SEaXaOAcW8Z3k5D+GrGLUW80FlJ3Nei9aGIHoLaysmvO9ht3/WcXfnPJBCMys=" | \
+encdec decrypt --alg rsa --padding oaep-sha256 --private-key private.pem --input-data "$(cat)"
+```
+
+#### Large File Encryption
+
+```bash
+# Encrypt large file (automatically chunked)
+encdec encrypt --alg rsa --padding pkcs1 --public-key public.pem \
+    --input-file large_database.sql --output-file large_database.enc
+
+# Decrypt large file (automatically reassembled)
+encdec decrypt --alg rsa --padding pkcs1 --private-key private.pem \
+    --input-file large_database.enc --output-file large_database.sql
+```
+
+**RSA Encryption Options:**
+
+* `-a, --alg`: Algorithm (`rsa`) - required for RSA operations
+* `-p, --padding`: Padding scheme (`pkcs1`, `oaep-sha256`) - default: `pkcs1`
+* `--public-key`: RSA public key file (PEM format) - required for encryption
+* `--private-key`: RSA private key file (PEM format) - required for decryption
+* `--input-data`: Input as string (base64 decoded for decryption)
+* `--input-file`: Input from file (base64 decoded for decryption)
+* `--output-file`: Save to file (base64 encoded for encryption)
+* `--output-encoding`: Output format for decryption (`utf8`, `base64`, `hex`) - default: `utf8`
+
+**RSA Key Sizes:**
+
+* **2048 bits**: Minimum recommended size, good for most applications
+* **3072 bits**: High security, recommended for sensitive data
+* **4096 bits**: Maximum security, suitable for long-term storage
+
+**Padding Schemes:**
+
+* **PKCS1**: Legacy padding, faster but less secure
+* **OAEP-SHA256**: Modern padding, more secure, recommended for new applications
+
+**Note:** RSA encrypted output is always base64 encoded for consistency. Large files are automatically chunked during encryption and reassembled during decryption.
 
 ### 4\. Digital Signature (RSA)
 
@@ -215,16 +271,24 @@ The development will follow a phased approach, prioritizing security and core fu
 | **Key Management** | Auto-detect key encoding (hex/base64/utf8), file-based key loading. | ✅ Done |
 | **Encoding/Decoding** | Implement `encode` and `decode` helpers for Base64 and Hex to support string I/O. | ✅ Done |
 
-### Phase 3: Asymmetric Crypto & Advanced Features (In Progress)
+### Phase 3: Asymmetric Crypto & Advanced Features ✅ COMPLETED
 
 | Task | Detail | Status |
 | :--- | :--- | :--- |
-| **RSA Operations** | Implement RSA KeyGen (2048/4096), Import/Export, and encryption/decryption with **PKCS1** and **OAEP**. | 🔄 In Progress |
+| **RSA Operations** | Implement RSA KeyGen (2048/4096), Import/Export, and encryption/decryption with **PKCS1** and **OAEP**. | ✅ Done |
+| **RSA Chunking** | Implement chunked I/O for large files with automatic chunking and reassembly. | ✅ Done |
+| **RSA CLI Integration** | Implement encrypt/decrypt commands with base64 I/O handling. | ✅ Done |
+| **RSA Key Management** | Implement PEM key loading and saving for RSA operations. | ✅ Done |
+
+### Phase 4: Digital Signatures & Advanced Features (In Progress)
+
+| Task | Detail | Status |
+| :--- | :--- | :--- |
 | **RSA Signatures** | Implement `sign` and `verify` functionality for digital signatures (e.g., SHA256withRSA). | 🔄 In Progress |
-| **File I/O Streaming**| Implement chunked I/O using `Cipher::update` to handle large files efficiently. | 🔄 In Progress |
+| **File I/O Streaming**| Implement streaming I/O for very large files. | 🔄 In Progress |
 | **User Experience** | Refine CLI help messages, error reporting, and security warnings. | 🔄 In Progress |
 
-### Phase 4: Testing & Distribution (Target: 1 Week)
+### Phase 5: Testing & Distribution (Target: 1 Week)
 
 | Task | Detail | Deployment Goal |
 | :--- | :--- | :--- |
