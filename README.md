@@ -204,24 +204,101 @@ encdec decrypt --alg rsa --padding pkcs1 --private-key private.pem \
 
 **Note:** RSA encrypted output is always base64 encoded for consistency. Large files are automatically chunked during encryption and reassembled during decryption.
 
-### 4\. Digital Signature (RSA)
+### 4. Digital Signature (RSA) ✅
 
 Signs a file using a private key and verifies the signature using a public key.
 
-| Subcommand | Description |
-| :--- | :--- |
-| `sign` | Creates a digital signature for an input file. |
-| `verify` | Verifies a digital signature against an input file and public key. |
+#### RSA Key Generation for Signatures
 
 ```bash
-# Sign a file using a private key and SHA256withRSA
-encdec sign --alg rsa --sig-alg sha256withrsa \
-    --private-key private.pem --input-file document.pdf --output-sig doc.sig
+# Generate RSA-2048 key pair for signing
+encdec keygen --alg rsa --size 2048 --private-out sign_private.pem --public-out sign_public.pem
 
-# Verify the signature
-encdec verify --alg rsa --sig-alg sha256withrsa \
-    --public-key public.pem --input-file document.pdf --signature doc.sig
+# Generate RSA-4096 key pair for high security
+encdec keygen --alg rsa --size 4096 --private-out sign_private_4096.pem --public-out sign_public_4096.pem
 ```
+
+#### Digital Signature Creation
+
+```bash
+# Sign a document with RSA private key
+encdec sign --alg rsa --private-key sign_private.pem \
+    --input-file document.pdf --output-sig document.sig
+
+# Sign a text file
+encdec sign --alg rsa --private-key sign_private.pem \
+    --input-file contract.txt --output-sig contract.sig
+
+# Sign a binary file
+encdec sign --alg rsa --private-key sign_private.pem \
+    --input-file software.exe --output-sig software.sig
+```
+
+#### Digital Signature Verification
+
+```bash
+# Verify a signature with RSA public key
+encdec verify --alg rsa --public-key sign_public.pem \
+    --input-file document.pdf --signature document.sig
+
+# Verify a text file signature
+encdec verify --alg rsa --public-key sign_public.pem \
+    --input-file contract.txt --signature contract.sig
+
+# Verify a binary file signature
+encdec verify --alg rsa --public-key sign_public.pem \
+    --input-file software.exe --signature software.sig
+```
+
+#### Complete Workflow Example
+
+```bash
+# 1. Generate key pair
+encdec keygen --alg rsa --size 2048 --private-out alice_private.pem --public-out alice_public.pem
+
+# 2. Create a document
+echo "This is a confidential document" > confidential.txt
+
+# 3. Sign the document
+encdec sign --alg rsa --private-key alice_private.pem \
+    --input-file confidential.txt --output-sig confidential.sig
+
+# 4. Verify the signature (should succeed)
+encdec verify --alg rsa --public-key alice_public.pem \
+    --input-file confidential.txt --signature confidential.sig
+
+# 5. Modify the document and try to verify (should fail)
+echo "Modified content" > confidential.txt
+encdec verify --alg rsa --public-key alice_public.pem \
+    --input-file confidential.txt --signature confidential.sig
+```
+
+**Digital Signature Options:**
+
+* `-a, --alg`: Algorithm (`rsa`) - required for signature operations
+* `--sig-alg`: Signature algorithm (`sha256withrsa`) - default: `sha256withrsa`
+* `--private-key`: RSA private key file (PEM format) - required for signing
+* `--public-key`: RSA public key file (PEM format) - required for verification
+* `--input-file`: File to sign or verify - required
+* `--output-sig`: Output signature file - required for signing
+* `--signature`: Signature file to verify - required for verification
+
+**Signature Process:**
+
+1. **Signing**: Creates SHA-256 hash of the file and encrypts it with the private key
+2. **Verification**: Creates SHA-256 hash of the file and compares it with the decrypted signature
+3. **Security**: Uses PKCS1v15 padding for signature operations
+4. **File Format**: Signatures are saved as binary files
+
+**Use Cases:**
+
+* **Document Integrity**: Verify that documents haven't been tampered with
+* **Software Distribution**: Sign software packages to ensure authenticity
+* **Code Signing**: Sign executable files and scripts
+* **Legal Documents**: Create legally binding digital signatures
+* **Secure Communication**: Verify the authenticity of received files
+
+**Note:** Digital signatures provide authentication, integrity, and non-repudiation. The signature is tied to both the file content and the private key, making it impossible to forge without access to the private key.
 
 ## 🏗️ Project Directory Structure
 
@@ -280,15 +357,24 @@ The development will follow a phased approach, prioritizing security and core fu
 | **RSA CLI Integration** | Implement encrypt/decrypt commands with base64 I/O handling. | ✅ Done |
 | **RSA Key Management** | Implement PEM key loading and saving for RSA operations. | ✅ Done |
 
-### Phase 4: Digital Signatures & Advanced Features (In Progress)
+### Phase 4: Digital Signatures & Advanced Features ✅ COMPLETED
 
 | Task | Detail | Status |
 | :--- | :--- | :--- |
-| **RSA Signatures** | Implement `sign` and `verify` functionality for digital signatures (e.g., SHA256withRSA). | 🔄 In Progress |
+| **RSA Signatures** | Implement `sign` and `verify` functionality for digital signatures (e.g., SHA256withRSA). | ✅ Done |
+| **Signature CLI** | Implement sign/verify commands with file I/O and error handling. | ✅ Done |
+| **SHA-256 Hashing** | Implement SHA-256 hashing for signature generation and verification. | ✅ Done |
+| **Signature File I/O** | Implement signature file loading and saving utilities. | ✅ Done |
+
+### Phase 5: Testing & Advanced Features (In Progress)
+
+| Task | Detail | Status |
+| :--- | :--- | :--- |
 | **File I/O Streaming**| Implement streaming I/O for very large files. | 🔄 In Progress |
 | **User Experience** | Refine CLI help messages, error reporting, and security warnings. | 🔄 In Progress |
+| **Performance Optimization** | Optimize encryption/decryption for large files. | 🔄 In Progress |
 
-### Phase 5: Testing & Distribution (Target: 1 Week)
+### Phase 6: Testing & Distribution (Target: 1 Week)
 
 | Task | Detail | Deployment Goal |
 | :--- | :--- | :--- |
