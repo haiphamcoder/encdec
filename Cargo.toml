@@ -9,8 +9,7 @@ clap = { version = "4.5", features = ["derive"] } # CLI argument parsing with de
 # Symmetric crypto (RustCrypto)
 aes = "0.8" # AES block cipher primitives
 aes-gcm = { version = "0.10", features = ["aes"] } # AEAD: authenticated encryption (preferred AES-GCM)
-block-modes = "0.9" # CBC/CFB/OFB/CTR modes for block ciphers
-block-padding = "0.3" # PKCS7/ZeroPadding for block modes
+cbc = "0.1" # CBC mode for block ciphers
 des = "0.8" # Legacy DES/3DES support (compatibility only)
 
 # Asymmetric crypto

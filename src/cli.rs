@@ -1,6 +1,7 @@
 use crate::types::{Algorithm, Mode, OutputEncoding, Padding};
 use crate::crypto::{aes, des, rsa};
 use crate::error::Result;
+use crate::util::{read_input, write_output, InputSource, OutputTarget, base64_encode, hex_encode};
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -161,31 +162,121 @@ fn handle_keygen(args: KeygenArgs) -> Result<()> {
 
 fn handle_encrypt(args: CryptoArgs) -> Result<()> {
     validate_input_source(&args.input_data, &args.input_file)?;
-    println!(
-        "[encrypt] alg={:?} mode={:?} padding={:?} out_enc={:?} in_data?={} in_file?={} out_file={:?}",
-        args.algorithm,
-        args.mode,
-        args.padding,
-        args.output_encoding,
-        args.input_data.is_some(),
-        args.input_file.is_some(),
-        args.output_file
-    );
+    
+    // Load input data
+    let input_source = if let Some(data) = &args.input_data {
+        InputSource::Inline(data)
+    } else {
+        InputSource::File(args.input_file.as_ref().unwrap())
+    };
+    let data = read_input(input_source)?;
+    
+    // Load key
+    let key = if let Some(key_str) = &args.key {
+        load_key_from_string(key_str, args.algorithm)?
+    } else if let Some(key_file) = &args.key_file {
+        load_key_from_file(key_file, args.algorithm)?
+    } else {
+        return Err(crate::error::CryptoError::InvalidArgument("Must provide either --key or --key-file".to_string()));
+    };
+    
+    // Encrypt data
+    let (ciphertext, iv_or_nonce) = match args.algorithm {
+        Algorithm::Aes => aes::encrypt(&data, &key, args.mode, args.padding)?,
+        Algorithm::Des => des::encrypt(&data, &key, args.mode, args.padding)?,
+        Algorithm::Rsa => return Err(crate::error::CryptoError::InvalidArgument("Use RSA-specific commands for RSA encryption".to_string())),
+    };
+    
+    // Combine IV/nonce with ciphertext for output
+    let mut output = Vec::new();
+    output.extend_from_slice(&iv_or_nonce);
+    output.extend_from_slice(&ciphertext);
+    
+    // Output result
+    let output_target = if let Some(file) = &args.output_file {
+        OutputTarget::File(file)
+    } else {
+        OutputTarget::Stdout
+    };
+    
+    if matches!(output_target, OutputTarget::Stdout) {
+        let formatted = format_output(&output, args.output_encoding);
+        println!("{}", formatted);
+    } else {
+        write_output(output_target, &output)?;
+        println!("Encrypted data saved to file");
+    }
+    
     Ok(())
 }
 
 fn handle_decrypt(args: CryptoArgs) -> Result<()> {
     validate_input_source(&args.input_data, &args.input_file)?;
-    println!(
-        "[decrypt] alg={:?} mode={:?} padding={:?} out_enc={:?} in_data?={} in_file?={} out_file={:?}",
-        args.algorithm,
-        args.mode,
-        args.padding,
-        args.output_encoding,
-        args.input_data.is_some(),
-        args.input_file.is_some(),
-        args.output_file
-    );
+    
+    // Load input data
+    let input_source = if let Some(data) = &args.input_data {
+        InputSource::Inline(data)
+    } else {
+        InputSource::File(args.input_file.as_ref().unwrap())
+    };
+    let data = read_input(input_source)?;
+    
+    // Load key
+    let key = if let Some(key_str) = &args.key {
+        load_key_from_string(key_str, args.algorithm)?
+    } else if let Some(key_file) = &args.key_file {
+        load_key_from_file(key_file, args.algorithm)?
+    } else {
+        return Err(crate::error::CryptoError::InvalidArgument("Must provide either --key or --key-file".to_string()));
+    };
+    
+    // Extract IV/nonce and ciphertext
+    let (iv_or_nonce, ciphertext) = match args.algorithm {
+        Algorithm::Aes => {
+            let iv_len = match args.mode {
+                Mode::Cbc => 16,
+                Mode::Gcm => 12,
+                _ => return Err(crate::error::CryptoError::InvalidArgument("Unsupported mode for decryption".to_string())),
+            };
+            if data.len() < iv_len {
+                return Err(crate::error::CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
+            }
+            let (iv, cipher) = data.split_at(iv_len);
+            (iv.to_vec(), cipher.to_vec())
+        }
+        Algorithm::Des => {
+            let iv_len = 8; // DES block size
+            if data.len() < iv_len {
+                return Err(crate::error::CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
+            }
+            let (iv, cipher) = data.split_at(iv_len);
+            (iv.to_vec(), cipher.to_vec())
+        }
+        Algorithm::Rsa => return Err(crate::error::CryptoError::InvalidArgument("Use RSA-specific commands for RSA decryption".to_string())),
+    };
+    
+    // Decrypt data
+    let plaintext = match args.algorithm {
+        Algorithm::Aes => aes::decrypt(&ciphertext, &key, args.mode, args.padding, &iv_or_nonce)?,
+        Algorithm::Des => des::decrypt(&ciphertext, &key, args.mode, args.padding, &iv_or_nonce)?,
+        Algorithm::Rsa => return Err(crate::error::CryptoError::InvalidArgument("Use RSA-specific commands for RSA decryption".to_string())),
+    };
+    
+    // Output result
+    let output_target = if let Some(file) = &args.output_file {
+        OutputTarget::File(file)
+    } else {
+        OutputTarget::Stdout
+    };
+    
+    if matches!(output_target, OutputTarget::Stdout) {
+        let formatted = format_output(&plaintext, args.output_encoding);
+        println!("{}", formatted);
+    } else {
+        write_output(output_target, &plaintext)?;
+        println!("Decrypted data saved to file");
+    }
+    
     Ok(())
 }
 
@@ -219,4 +310,54 @@ fn validate_input_source(input_data: &Option<String>, input_file: &Option<String
         return Err(crate::error::CryptoError::Message("Must provide one of --input-data or --input-file".to_string()));
     }
     Ok(())
+}
+
+fn load_key_from_string(key_str: &str, algorithm: Algorithm) -> Result<Vec<u8>> {
+    // Try to detect encoding automatically
+    let encoding = if key_str.chars().all(|c| c.is_ascii_hexdigit()) {
+        OutputEncoding::Hex
+    } else if key_str.chars().all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=') {
+        OutputEncoding::Base64
+    } else {
+        OutputEncoding::Utf8
+    };
+    
+    match algorithm {
+        Algorithm::Aes => aes::load_key(key_str, encoding),
+        Algorithm::Des => des::load_key(key_str, encoding),
+        Algorithm::Rsa => Err(crate::error::CryptoError::InvalidArgument("RSA keys should be loaded from PEM files".to_string())),
+    }
+}
+
+fn load_key_from_file(key_file: &str, algorithm: Algorithm) -> Result<Vec<u8>> {
+    let key_data = std::fs::read(key_file)?;
+    
+    match algorithm {
+        Algorithm::Aes => {
+            if key_data.len() == 32 {
+                Ok(key_data)
+            } else {
+                Err(crate::error::CryptoError::InvalidArgument("AES-256 requires 32-byte key file".to_string()))
+            }
+        }
+        Algorithm::Des => {
+            if key_data.len() == 8 {
+                Ok(key_data)
+            } else {
+                Err(crate::error::CryptoError::InvalidArgument("DES requires 8-byte key file".to_string()))
+            }
+        }
+        Algorithm::Rsa => Err(crate::error::CryptoError::InvalidArgument("RSA keys should be loaded from PEM files using --private-key or --public-key".to_string())),
+    }
+}
+
+fn format_output(data: &[u8], encoding: OutputEncoding) -> String {
+    match encoding {
+        OutputEncoding::Base64 => base64_encode(data),
+        OutputEncoding::Hex => hex_encode(data),
+        OutputEncoding::Utf8 => {
+            // Try to convert to UTF-8 string, fallback to hex if invalid
+            String::from_utf8(data.to_vec()).unwrap_or_else(|_| hex_encode(data))
+        }
+    }
 }
