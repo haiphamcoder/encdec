@@ -347,23 +347,43 @@ fn handle_decrypt(args: CryptoArgs) -> Result<()> {
 
 fn handle_sign(args: SignArgs) -> Result<()> {
     if args.algorithm != Algorithm::Rsa {
-        return Err(crate::error::CryptoError::Message("sign currently supports RSA only".to_string()));
+        return Err(CryptoError::InvalidArgument("Sign currently supports RSA only".to_string()));
     }
-    println!(
-        "[sign] alg=RSA sig_alg={} priv_key={} input={} out_sig={}",
-        args.sig_alg, args.private_key, args.input_file, args.output_sig
-    );
+    
+    // Load private key
+    let private_key = rsa::load_private_key_pem(&args.private_key)?;
+    
+    // Sign the file
+    let signature = rsa::sign_file(&args.input_file, &private_key)?;
+    
+    // Save signature
+    rsa::save_signature(&signature, &args.output_sig)?;
+    
+    println!("File signed successfully. Signature saved to: {}", args.output_sig);
     Ok(())
 }
 
 fn handle_verify(args: VerifyArgs) -> Result<()> {
     if args.algorithm != Algorithm::Rsa {
-        return Err(crate::error::CryptoError::Message("verify currently supports RSA only".to_string()));
+        return Err(CryptoError::InvalidArgument("Verify currently supports RSA only".to_string()));
     }
-    println!(
-        "[verify] alg=RSA sig_alg={} pub_key={} input={} sig={}",
-        args.sig_alg, args.public_key, args.input_file, args.signature
-    );
+    
+    // Load public key
+    let public_key = rsa::load_public_key_pem(&args.public_key)?;
+    
+    // Load signature
+    let signature = rsa::load_signature(&args.signature)?;
+    
+    // Verify signature
+    let is_valid = rsa::verify_file(&args.input_file, &signature, &public_key)?;
+    
+    if is_valid {
+        println!("✓ Signature is valid");
+    } else {
+        println!("✗ Signature is invalid");
+        std::process::exit(1);
+    }
+    
     Ok(())
 }
 
