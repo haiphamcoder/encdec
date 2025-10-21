@@ -7,6 +7,7 @@ use crate::error::Result;
 const CHUNK_SIZE: usize = 64 * 1024; // 64KB chunks
 const LARGE_FILE_THRESHOLD: u64 = 100 * 1024 * 1024; // 100MB
 
+#[allow(dead_code)]
 pub struct StreamingReader {
     reader: BufReader<File>,
     file_size: u64,
@@ -18,6 +19,7 @@ pub struct StreamingWriter {
     bytes_written: u64,
 }
 
+#[allow(dead_code)]
 impl StreamingReader {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let file = File::open(path)?;
@@ -61,6 +63,7 @@ impl StreamingReader {
     }
 }
 
+#[allow(dead_code)]
 impl StreamingWriter {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let file = File::create(path)?;
@@ -104,6 +107,7 @@ impl StreamingWriter {
     }
 }
 
+#[allow(dead_code)]
 pub fn copy_file_streaming<P: AsRef<Path>, Q: AsRef<Path>>(
     src: P, 
     dst: Q
@@ -121,6 +125,7 @@ pub fn copy_file_streaming<P: AsRef<Path>, Q: AsRef<Path>>(
     Ok(total_bytes)
 }
 
+#[allow(dead_code)]
 pub fn process_file_in_chunks<F>(
     input_path: &str,
     output_path: &str,
@@ -143,11 +148,13 @@ where
     Ok(total_bytes)
 }
 
+#[allow(dead_code)]
 pub fn get_file_size<P: AsRef<Path>>(path: P) -> Result<u64> {
     let file = File::open(path)?;
     Ok(file.metadata()?.len())
 }
 
+#[allow(dead_code)]
 pub fn format_bytes(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
     const THRESHOLD: u64 = 1024;
@@ -167,6 +174,7 @@ pub fn format_bytes(bytes: u64) -> String {
     }
 }
 
+#[allow(dead_code)]
 pub fn print_progress(current: u64, total: u64, operation: &str) {
     if total == 0 {
         return;
@@ -176,7 +184,7 @@ pub fn print_progress(current: u64, total: u64, operation: &str) {
     let current_str = format_bytes(current);
     let total_str = format_bytes(total);
     
-    print!("\r{}: {:.1}% ({}/{})", operation, percentage, current_str, total_str);
+    print!("\r{operation}: {percentage:.1}% ({current_str}/{total_str})");
     std::io::stdout().flush().ok();
     
     if current >= total {

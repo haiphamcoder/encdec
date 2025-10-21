@@ -23,7 +23,7 @@ fn test_aes_performance() {
     assert!(encrypt_time.as_secs_f64() < 1.0);
     assert!(decrypt_time.as_secs_f64() < 1.0);
     
-    println!("AES-256-CBC 1MB: Encrypt: {:?}, Decrypt: {:?}", encrypt_time, decrypt_time);
+    println!("AES-256-CBC 1MB: Encrypt: {encrypt_time:?}, Decrypt: {decrypt_time:?}");
 }
 
 #[test]
@@ -47,7 +47,7 @@ fn test_aes_gcm_performance() {
     assert!(encrypt_time.as_secs_f64() < 1.0);
     assert!(decrypt_time.as_secs_f64() < 1.0);
     
-    println!("AES-256-GCM 1MB: Encrypt: {:?}, Decrypt: {:?}", encrypt_time, decrypt_time);
+    println!("AES-256-GCM 1MB: Encrypt: {encrypt_time:?}, Decrypt: {decrypt_time:?}");
 }
 
 #[test]
@@ -71,7 +71,7 @@ fn test_des_performance() {
     assert!(encrypt_time.as_secs_f64() < 1.0);
     assert!(decrypt_time.as_secs_f64() < 1.0);
     
-    println!("DES-CBC 1MB: Encrypt: {:?}, Decrypt: {:?}", encrypt_time, decrypt_time);
+    println!("DES-CBC 1MB: Encrypt: {encrypt_time:?}, Decrypt: {decrypt_time:?}");
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn test_rsa_performance() {
     assert!(encrypt_time.as_secs_f64() < 0.1);
     assert!(decrypt_time.as_secs_f64() < 0.1);
     
-    println!("RSA-2048 PKCS1: Encrypt: {:?}, Decrypt: {:?}", encrypt_time, decrypt_time);
+    println!("RSA-2048 PKCS1: Encrypt: {encrypt_time:?}, Decrypt: {decrypt_time:?}");
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn test_rsa_oaep_performance() {
     assert!(encrypt_time.as_secs_f64() < 0.1);
     assert!(decrypt_time.as_secs_f64() < 0.1);
     
-    println!("RSA-2048 OAEP: Encrypt: {:?}, Decrypt: {:?}", encrypt_time, decrypt_time);
+    println!("RSA-2048 OAEP: Encrypt: {encrypt_time:?}, Decrypt: {decrypt_time:?}");
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn test_rsa_chunked_performance() {
     assert!(encrypt_time.as_secs_f64() < 0.5);
     assert!(decrypt_time.as_secs_f64() < 0.5);
     
-    println!("RSA-2048 Chunked: Encrypt: {:?}, Decrypt: {:?}", encrypt_time, decrypt_time);
+    println!("RSA-2048 Chunked: Encrypt: {encrypt_time:?}, Decrypt: {decrypt_time:?}");
 }
 
 #[test]
@@ -164,7 +164,7 @@ fn test_digital_signature_performance() {
     assert!(sign_time.as_secs_f64() < 0.1);
     assert!(verify_time.as_secs_f64() < 0.1);
     
-    println!("RSA Digital Signature: Sign: {:?}, Verify: {:?}", sign_time, verify_time);
+    println!("RSA Digital Signature: Sign: {sign_time:?}, Verify: {verify_time:?}");
 }
 
 #[test]
@@ -217,6 +217,5 @@ fn test_memory_usage_simulation() {
     assert!(decrypt_time.as_secs_f64() < 5.0);
     
     let throughput = (large_data.len() as f64) / encrypt_time.as_secs_f64() / (1024.0 * 1024.0);
-    println!("10MB data: Encrypt: {:?}, Decrypt: {:?}, Throughput: {:.2} MB/s", 
-             encrypt_time, decrypt_time, throughput);
+    println!("10MB data: Encrypt: {encrypt_time:?}, Decrypt: {decrypt_time:?}, Throughput: {throughput:.2} MB/s");
 }

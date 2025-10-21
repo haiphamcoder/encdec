@@ -74,7 +74,7 @@ pub fn encrypt_cbc(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
             // Return the actual ciphertext length
             Ok(ciphertext.to_vec())
         },
-        Err(e) => Err(CryptoError::InvalidArgument(format!("Encryption failed: {:?}", e))),
+        Err(e) => Err(CryptoError::InvalidArgument(format!("Encryption failed: {e:?}"))),
     }
 }
 
@@ -104,14 +104,14 @@ pub fn encrypt(data: &[u8], key: &[u8], mode: Mode, _padding: Padding) -> Result
             let ciphertext = encrypt_cbc(data, key, &iv)?;
             Ok((ciphertext, iv))
         }
-        _ => Err(CryptoError::InvalidArgument(format!("DES mode {:?} not yet implemented", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("DES mode {mode:?} not yet implemented"))),
     }
 }
 
 pub fn decrypt(ciphertext: &[u8], key: &[u8], mode: Mode, _padding: Padding, iv: &[u8]) -> Result<Vec<u8>> {
     match mode {
         Mode::Cbc => decrypt_cbc(ciphertext, key, iv),
-        _ => Err(CryptoError::InvalidArgument(format!("DES mode {:?} not yet implemented", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("DES mode {mode:?} not yet implemented"))),
     }
 }
 
@@ -120,7 +120,7 @@ pub fn encrypt_file_streaming(
     output_path: &str,
     key: &[u8],
     mode: Mode,
-    padding: Padding,
+    _padding: Padding,
 ) -> Result<u64> {
     match mode {
         Mode::Cbc => {
@@ -137,7 +137,7 @@ pub fn encrypt_file_streaming(
             
             Ok((iv.len() + ciphertext.len()) as u64)
         }
-        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {mode:?}"))),
     }
 }
 
@@ -146,7 +146,7 @@ pub fn decrypt_file_streaming(
     output_path: &str,
     key: &[u8],
     mode: Mode,
-    padding: Padding,
+    _padding: Padding,
 ) -> Result<u64> {
     match mode {
         Mode::Cbc => {
@@ -166,6 +166,6 @@ pub fn decrypt_file_streaming(
             
             Ok(plaintext.len() as u64)
         }
-        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {mode:?}"))),
     }
 }

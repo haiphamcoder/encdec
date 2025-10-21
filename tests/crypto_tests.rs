@@ -55,17 +55,14 @@ fn test_aes_key_formatting() {
     // Test Base64 formatting
     let base64_key = aes::format_key(&key, OutputEncoding::Base64);
     assert!(!base64_key.is_empty());
-    assert!(base64_key.len() > 0);
 
     // Test Hex formatting
     let hex_key = aes::format_key(&key, OutputEncoding::Hex);
     assert!(!hex_key.is_empty());
-    assert!(hex_key.len() > 0);
 
     // Test UTF-8 formatting (actually returns hex for display)
     let utf8_key = aes::format_key(&key, OutputEncoding::Utf8);
     assert!(!utf8_key.is_empty());
-    assert!(utf8_key.len() > 0);
 }
 
 #[test]
@@ -113,23 +110,21 @@ fn test_des_key_formatting() {
     // Test DES key formatting
     let des_formatted = des::format_key(&des_key, OutputEncoding::Base64);
     assert!(!des_formatted.is_empty());
-    assert!(des_formatted.len() > 0);
 
     // Test 3DES key formatting
     let triple_des_formatted = des::format_key(&triple_des_key, OutputEncoding::Base64);
     assert!(!triple_des_formatted.is_empty());
-    assert!(triple_des_formatted.len() > 0);
 }
 
 #[test]
 fn test_rsa_key_generation() {
     // Test RSA-2048 key generation
-    let (private_key, public_key) = rsa::generate_keypair(2048).unwrap();
+    let (_private_key, _public_key) = rsa::generate_keypair(2048).unwrap();
     // Just verify keys were generated successfully (they exist)
     // We'll test the actual functionality in other tests
 
     // Test RSA-4096 key generation
-    let (private_key_4096, public_key_4096) = rsa::generate_keypair(4096).unwrap();
+    let (_private_key_4096, _public_key_4096) = rsa::generate_keypair(4096).unwrap();
     // Just verify keys were generated successfully
     // We'll test the actual functionality in other tests
 }
@@ -207,12 +202,12 @@ fn test_rsa_pem_key_serialization() {
     assert!(public_pem.contains("END PUBLIC KEY"));
 
     // Test private key PEM deserialization
-    let loaded_private = rsa::load_private_key_pem("test_private.pem").unwrap();
+    let _loaded_private = rsa::load_private_key_pem("test_private.pem").unwrap();
     // Just verify the key was loaded successfully
     // We'll test the actual functionality in other tests
 
     // Test public key PEM deserialization
-    let loaded_public = rsa::load_public_key_pem("test_public.pem").unwrap();
+    let _loaded_public = rsa::load_public_key_pem("test_public.pem").unwrap();
     // Just verify the key was loaded successfully
     // We'll test the actual functionality in other tests
 
@@ -223,7 +218,6 @@ fn test_rsa_pem_key_serialization() {
 
 #[test]
 fn test_error_handling() {
-    use encdec::error::CryptoError;
 
     // Test invalid key size
     let result = aes::generate_key(128);
@@ -232,13 +226,13 @@ fn test_error_handling() {
     // Test invalid algorithm parameters
     let invalid_key = vec![0u8; 16]; // Too short for AES-256
     let data = b"test";
-    let result = aes::encrypt_cbc(data, &invalid_key, &vec![0u8; 16]);
+    let result = aes::encrypt_cbc(data, &invalid_key, &[0u8; 16]);
     // This should fail because the key is too short for AES-256
     assert!(result.is_err());
 
     // Test with proper key (AES-256 requires 32-byte key)
     let key = aes::generate_key(256).unwrap();
-    let result = aes::encrypt_cbc(data, &key, &vec![0u8; 16]);
+    let result = aes::encrypt_cbc(data, &key, &[0u8; 16]);
     assert!(result.is_ok());
 }
 

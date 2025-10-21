@@ -232,12 +232,12 @@ fn handle_keygen(args: KeygenArgs) -> Result<()> {
             
             if let Some(ref private_path) = args.private_out {
                 rsa::save_private_key_pem(&private_key, private_path)?;
-                println!("RSA private key saved to: {}", private_path);
+                println!("RSA private key saved to: {private_path}");
             }
             
             if let Some(ref public_path) = args.public_out {
                 rsa::save_public_key_pem(&public_key, public_path)?;
-                println!("RSA public key saved to: {}", public_path);
+                println!("RSA public key saved to: {public_path}");
             }
             
             if args.private_out.is_none() && args.public_out.is_none() {
@@ -301,7 +301,7 @@ fn handle_encrypt(args: CryptoArgs) -> Result<()> {
             let public_key = if let Some(key_path) = &args.public_key {
                 rsa::load_public_key_pem(key_path)
                     .map_err(|e| crate::error::CryptoError::InvalidArgument(
-                        format!("Failed to load RSA public key from '{}': {}", key_path, e)
+                        format!("Failed to load RSA public key from '{key_path}': {e}")
                     ))?
             } else {
                 return Err(crate::error::CryptoError::InvalidArgument(
@@ -332,7 +332,7 @@ fn handle_encrypt(args: CryptoArgs) -> Result<()> {
         } else {
             format_output(&output, args.output_encoding)
         };
-        println!("{}", formatted);
+        println!("{formatted}");
     } else {
         if args.algorithm == Algorithm::Rsa {
             // For RSA, write base64 encoded data
@@ -376,7 +376,7 @@ fn handle_encrypt_streaming(args: CryptoArgs) -> Result<()> {
         }
     };
     
-    println!("Encrypted {} bytes using streaming I/O", bytes_processed);
+    println!("Encrypted {bytes_processed} bytes using streaming I/O");
     Ok(())
 }
 
@@ -408,7 +408,7 @@ fn handle_decrypt_streaming(args: CryptoArgs) -> Result<()> {
         }
     };
     
-    println!("Decrypted {} bytes using streaming I/O", bytes_processed);
+    println!("Decrypted {bytes_processed} bytes using streaming I/O");
     Ok(())
 }
 
@@ -514,7 +514,7 @@ fn handle_decrypt(args: CryptoArgs) -> Result<()> {
     
     if matches!(output_target, OutputTarget::Stdout) {
         let formatted = format_output(&plaintext, args.output_encoding);
-        println!("{}", formatted);
+        println!("{formatted}");
     } else {
         write_output(output_target, &plaintext)?;
         println!("Decrypted data saved to file");

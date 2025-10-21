@@ -20,6 +20,7 @@ pub fn generate_key(size_bits: u32) -> Result<Vec<u8>> {
     Ok(key)
 }
 
+#[allow(dead_code)]
 pub fn generate_key_with_password(password: &str, salt: &[u8], size_bits: u32) -> Result<Vec<u8>> {
     use pbkdf2::pbkdf2_hmac;
     use sha2::Sha256;
@@ -43,6 +44,7 @@ pub fn format_key(key: &[u8], encoding: OutputEncoding) -> String {
     }
 }
 
+#[allow(dead_code)]
 pub fn generate_random_salt() -> Result<Vec<u8>> {
     let mut salt = vec![0u8; 16];
     let mut rng = rand::thread_rng();
@@ -91,7 +93,7 @@ pub fn encrypt_cbc(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
             // Return the actual ciphertext length
             Ok(ciphertext.to_vec())
         },
-        Err(e) => Err(CryptoError::InvalidArgument(format!("Encryption failed: {:?}", e))),
+        Err(e) => Err(CryptoError::InvalidArgument(format!("Encryption failed: {e:?}"))),
     }
 }
 
@@ -165,7 +167,7 @@ pub fn encrypt_file_streaming(
     output_path: &str,
     key: &[u8],
     mode: Mode,
-    padding: Padding,
+    _padding: Padding,
 ) -> Result<u64> {
     let file_size = std::fs::metadata(input_path)?.len();
     
@@ -203,7 +205,7 @@ pub fn encrypt_file_streaming(
             
             Ok((nonce.len() + ciphertext.len()) as u64)
         }
-        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {mode:?}"))),
     }
 }
 
@@ -212,7 +214,7 @@ pub fn decrypt_file_streaming(
     output_path: &str,
     key: &[u8],
     mode: Mode,
-    padding: Padding,
+    _padding: Padding,
 ) -> Result<u64> {
     match mode {
         Mode::Cbc => {
@@ -249,7 +251,7 @@ pub fn decrypt_file_streaming(
             
             Ok(plaintext.len() as u64)
         }
-        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {mode:?}"))),
     }
 }
 
@@ -272,7 +274,7 @@ pub fn encrypt(data: &[u8], key: &[u8], mode: Mode, _padding: Padding) -> Result
             let ciphertext = encrypt_gcm(data, key, &nonce)?;
             Ok((ciphertext, nonce))
         }
-        _ => Err(CryptoError::InvalidArgument(format!("Mode {:?} not yet implemented", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("Mode {mode:?} not yet implemented"))),
     }
 }
 
@@ -280,6 +282,6 @@ pub fn decrypt(ciphertext: &[u8], key: &[u8], mode: Mode, _padding: Padding, iv_
     match mode {
         Mode::Cbc => decrypt_cbc(ciphertext, key, iv_or_nonce),
         Mode::Gcm => decrypt_gcm(ciphertext, key, iv_or_nonce),
-        _ => Err(CryptoError::InvalidArgument(format!("Mode {:?} not yet implemented", mode))),
+        _ => Err(CryptoError::InvalidArgument(format!("Mode {mode:?} not yet implemented"))),
     }
 }

@@ -20,7 +20,7 @@ pub enum Mode {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, ValueEnum)]
 pub enum Padding {
     Pkcs5,
-    NoPadding,
+    None,
     // RSA paddings
     Pkcs1,
     #[value(name = "oaep-sha256")]

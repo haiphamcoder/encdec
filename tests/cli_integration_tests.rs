@@ -6,7 +6,7 @@ use std::path::Path;
 fn test_keygen_aes_commands() {
     // Test AES-256 key generation
     let output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "aes", "--size", "256"])
+        .args(["run", "--", "keygen", "--alg", "aes", "--size", "256"])
         .output()
         .expect("Failed to execute command");
     
@@ -16,7 +16,7 @@ fn test_keygen_aes_commands() {
     
     // Test AES-128 key generation with hex output
     let output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "aes", "--size", "128", "--output-encoding", "hex"])
+        .args(["run", "--", "keygen", "--alg", "aes", "--size", "128", "--output-encoding", "hex"])
         .output()
         .expect("Failed to execute command");
     
@@ -29,7 +29,7 @@ fn test_keygen_aes_commands() {
 fn test_keygen_des_commands() {
     // Test DES key generation
     let output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "des", "--size", "64"])
+        .args(["run", "--", "keygen", "--alg", "des", "--size", "64"])
         .output()
         .expect("Failed to execute command");
     
@@ -42,7 +42,7 @@ fn test_keygen_des_commands() {
 fn test_keygen_rsa_commands() {
     // Test RSA-2048 key generation
     let output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "rsa", "--size", "2048", "--private-out", "test_private.pem", "--public-out", "test_public.pem"])
+        .args(["run", "--", "keygen", "--alg", "rsa", "--size", "2048", "--private-out", "test_private.pem", "--public-out", "test_public.pem"])
         .output()
         .expect("Failed to execute command");
     
@@ -65,7 +65,7 @@ fn test_encrypt_decrypt_aes_workflow() {
     
     // Generate AES key
     let key_output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "aes", "--size", "256"])
+        .args(["run", "--", "keygen", "--alg", "aes", "--size", "256"])
         .output()
         .expect("Failed to generate key");
     
@@ -76,7 +76,7 @@ fn test_encrypt_decrypt_aes_workflow() {
     
     // Encrypt file
     let encrypt_output = Command::new("cargo")
-        .args(&["run", "--", "encrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_input.txt", "--output-file", "test_encrypted.bin"])
+        .args(["run", "--", "encrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_input.txt", "--output-file", "test_encrypted.bin"])
         .output()
         .expect("Failed to encrypt");
     
@@ -85,7 +85,7 @@ fn test_encrypt_decrypt_aes_workflow() {
     
     // Decrypt file
     let decrypt_output = Command::new("cargo")
-        .args(&["run", "--", "decrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_encrypted.bin", "--output-file", "test_decrypted.txt"])
+        .args(["run", "--", "decrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_encrypted.bin", "--output-file", "test_decrypted.txt"])
         .output()
         .expect("Failed to decrypt");
     
@@ -110,7 +110,7 @@ fn test_encrypt_decrypt_rsa_workflow() {
     
     // Generate RSA key pair
     let keygen_output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "rsa", "--size", "2048", "--private-out", "rsa_private.pem", "--public-out", "rsa_public.pem"])
+        .args(["run", "--", "keygen", "--alg", "rsa", "--size", "2048", "--private-out", "rsa_private.pem", "--public-out", "rsa_public.pem"])
         .output()
         .expect("Failed to generate RSA keys");
     
@@ -118,7 +118,7 @@ fn test_encrypt_decrypt_rsa_workflow() {
     
     // Encrypt with public key
     let encrypt_output = Command::new("cargo")
-        .args(&["run", "--", "encrypt", "--alg", "rsa", "--public-key", "rsa_public.pem", "--input-file", "test_rsa_input.txt", "--output-file", "test_rsa_encrypted.bin"])
+        .args(["run", "--", "encrypt", "--alg", "rsa", "--public-key", "rsa_public.pem", "--input-file", "test_rsa_input.txt", "--output-file", "test_rsa_encrypted.bin"])
         .output()
         .expect("Failed to encrypt with RSA");
     
@@ -127,7 +127,7 @@ fn test_encrypt_decrypt_rsa_workflow() {
     
     // Decrypt with private key
     let decrypt_output = Command::new("cargo")
-        .args(&["run", "--", "decrypt", "--alg", "rsa", "--private-key", "rsa_private.pem", "--input-file", "test_rsa_encrypted.bin", "--output-file", "test_rsa_decrypted.txt"])
+        .args(["run", "--", "decrypt", "--alg", "rsa", "--private-key", "rsa_private.pem", "--input-file", "test_rsa_encrypted.bin", "--output-file", "test_rsa_decrypted.txt"])
         .output()
         .expect("Failed to decrypt with RSA");
     
@@ -154,7 +154,7 @@ fn test_sign_verify_workflow() {
     
     // Generate RSA key pair
     let keygen_output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "rsa", "--size", "2048", "--private-out", "sign_private.pem", "--public-out", "sign_public.pem"])
+        .args(["run", "--", "keygen", "--alg", "rsa", "--size", "2048", "--private-out", "sign_private.pem", "--public-out", "sign_public.pem"])
         .output()
         .expect("Failed to generate RSA keys");
     
@@ -162,7 +162,7 @@ fn test_sign_verify_workflow() {
     
     // Sign file
     let sign_output = Command::new("cargo")
-        .args(&["run", "--", "sign", "--alg", "rsa", "--private-key", "sign_private.pem", "--input-file", "test_sign_input.txt", "--output-sig", "test_signature.sig"])
+        .args(["run", "--", "sign", "--alg", "rsa", "--private-key", "sign_private.pem", "--input-file", "test_sign_input.txt", "--output-sig", "test_signature.sig"])
         .output()
         .expect("Failed to sign file");
     
@@ -171,7 +171,7 @@ fn test_sign_verify_workflow() {
     
     // Verify signature
     let verify_output = Command::new("cargo")
-        .args(&["run", "--", "verify", "--alg", "rsa", "--public-key", "sign_public.pem", "--input-file", "test_sign_input.txt", "--signature", "test_signature.sig"])
+        .args(["run", "--", "verify", "--alg", "rsa", "--public-key", "sign_public.pem", "--input-file", "test_sign_input.txt", "--signature", "test_signature.sig"])
         .output()
         .expect("Failed to verify signature");
     
@@ -194,7 +194,7 @@ fn test_streaming_encryption_workflow() {
     
     // Generate AES key
     let key_output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "aes", "--size", "256"])
+        .args(["run", "--", "keygen", "--alg", "aes", "--size", "256"])
         .output()
         .expect("Failed to generate key");
     
@@ -205,7 +205,7 @@ fn test_streaming_encryption_workflow() {
     
     // Encrypt with streaming
     let encrypt_output = Command::new("cargo")
-        .args(&["run", "--", "encrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_streaming_input.txt", "--output-file", "test_streaming_encrypted.bin", "--stream"])
+        .args(["run", "--", "encrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_streaming_input.txt", "--output-file", "test_streaming_encrypted.bin", "--stream"])
         .output()
         .expect("Failed to encrypt with streaming");
     
@@ -219,7 +219,7 @@ fn test_streaming_encryption_workflow() {
     
     // Decrypt with streaming
     let decrypt_output = Command::new("cargo")
-        .args(&["run", "--", "decrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_streaming_encrypted.bin", "--output-file", "test_streaming_decrypted.txt", "--stream"])
+        .args(["run", "--", "decrypt", "--alg", "aes", "--mode", "cbc", "--key", key_b64, "--input-file", "test_streaming_encrypted.bin", "--output-file", "test_streaming_decrypted.txt", "--stream"])
         .output()
         .expect("Failed to decrypt with streaming");
     
@@ -240,7 +240,7 @@ fn test_streaming_encryption_workflow() {
 fn test_error_handling() {
     // Test missing key error
     let output = Command::new("cargo")
-        .args(&["run", "--", "encrypt", "--alg", "aes", "--input-data", "test data", "--output-file", "output.txt"])
+        .args(["run", "--", "encrypt", "--alg", "aes", "--input-data", "test data", "--output-file", "output.txt"])
         .output()
         .expect("Failed to execute command");
     
@@ -250,7 +250,7 @@ fn test_error_handling() {
     
     // Test invalid algorithm for signing
     let output = Command::new("cargo")
-        .args(&["run", "--", "sign", "--alg", "aes", "--private-key", "key.pem", "--input-file", "test.txt", "--output-sig", "sig.sig"])
+        .args(["run", "--", "sign", "--alg", "aes", "--private-key", "key.pem", "--input-file", "test.txt", "--output-sig", "sig.sig"])
         .output()
         .expect("Failed to execute command");
     
@@ -263,7 +263,7 @@ fn test_error_handling() {
 fn test_help_commands() {
     // Test main help
     let output = Command::new("cargo")
-        .args(&["run", "--", "--help"])
+        .args(["run", "--", "--help"])
         .output()
         .expect("Failed to execute command");
     
@@ -274,7 +274,7 @@ fn test_help_commands() {
     
     // Test encrypt help
     let output = Command::new("cargo")
-        .args(&["run", "--", "encrypt", "--help"])
+        .args(["run", "--", "encrypt", "--help"])
         .output()
         .expect("Failed to execute command");
     
@@ -288,7 +288,7 @@ fn test_help_commands() {
 fn test_different_encodings() {
     // Test Base64 encoding
     let output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "aes", "--size", "256", "--output-encoding", "base64"])
+        .args(["run", "--", "keygen", "--alg", "aes", "--size", "256", "--output-encoding", "base64"])
         .output()
         .expect("Failed to execute command");
     
@@ -298,7 +298,7 @@ fn test_different_encodings() {
     
     // Test Hex encoding
     let output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "aes", "--size", "256", "--output-encoding", "hex"])
+        .args(["run", "--", "keygen", "--alg", "aes", "--size", "256", "--output-encoding", "hex"])
         .output()
         .expect("Failed to execute command");
     
@@ -308,7 +308,7 @@ fn test_different_encodings() {
     
     // Test UTF-8 encoding
     let output = Command::new("cargo")
-        .args(&["run", "--", "keygen", "--alg", "aes", "--size", "256", "--output-encoding", "utf8"])
+        .args(["run", "--", "keygen", "--alg", "aes", "--size", "256", "--output-encoding", "utf8"])
         .output()
         .expect("Failed to execute command");
     

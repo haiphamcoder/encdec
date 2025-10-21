@@ -14,7 +14,7 @@ pub fn generate_keypair(bits: u32) -> Result<(RsaPrivateKey, RsaPublicKey)> {
     let mut rng = OsRng;
     
     let private_key = RsaPrivateKey::new(&mut rng, bits as usize)
-        .map_err(|e| CryptoError::Rsa(e))?;
+        .map_err(CryptoError::Rsa)?;
     
     let public_key = RsaPublicKey::from(&private_key);
     
@@ -23,7 +23,7 @@ pub fn generate_keypair(bits: u32) -> Result<(RsaPrivateKey, RsaPublicKey)> {
 
 pub fn save_private_key_pem(private_key: &RsaPrivateKey, path: &str) -> Result<()> {
     let pem = private_key.to_pkcs8_pem(pkcs8::LineEnding::LF)
-        .map_err(|e| CryptoError::Pkcs8(e))?;
+        .map_err(CryptoError::Pkcs8)?;
     
     write_bytes_to_file(path, pem.as_bytes())?;
     Ok(())
@@ -31,7 +31,7 @@ pub fn save_private_key_pem(private_key: &RsaPrivateKey, path: &str) -> Result<(
 
 pub fn save_public_key_pem(public_key: &RsaPublicKey, path: &str) -> Result<()> {
     let pem = public_key.to_public_key_pem(pkcs8::LineEnding::LF)
-        .map_err(|e| CryptoError::Spki(e))?;
+        .map_err(CryptoError::Spki)?;
     
     write_bytes_to_file(path, pem.as_bytes())?;
     Ok(())
@@ -43,7 +43,7 @@ pub fn load_private_key_pem(path: &str) -> Result<RsaPrivateKey> {
         .map_err(|_| CryptoError::InvalidArgument("Invalid PEM file encoding".to_string()))?;
     
     RsaPrivateKey::from_pkcs8_pem(&pem_str)
-        .map_err(|e| CryptoError::Pkcs8(e))
+        .map_err(CryptoError::Pkcs8)
 }
 
 pub fn load_public_key_pem(path: &str) -> Result<RsaPublicKey> {
@@ -52,7 +52,7 @@ pub fn load_public_key_pem(path: &str) -> Result<RsaPublicKey> {
         .map_err(|_| CryptoError::InvalidArgument("Invalid PEM file encoding".to_string()))?;
     
     RsaPublicKey::from_public_key_pem(&pem_str)
-        .map_err(|e| CryptoError::Spki(e))
+        .map_err(CryptoError::Spki)
 }
 
 pub fn encrypt_pkcs1(data: &[u8], public_key: &RsaPublicKey) -> Result<Vec<u8>> {
@@ -60,14 +60,14 @@ pub fn encrypt_pkcs1(data: &[u8], public_key: &RsaPublicKey) -> Result<Vec<u8>> 
     let padding = Pkcs1v15Encrypt;
     
     public_key.encrypt(&mut rng, padding, data)
-        .map_err(|e| CryptoError::Rsa(e))
+        .map_err(CryptoError::Rsa)
 }
 
 pub fn decrypt_pkcs1(ciphertext: &[u8], private_key: &RsaPrivateKey) -> Result<Vec<u8>> {
     let padding = Pkcs1v15Encrypt;
     
     private_key.decrypt(padding, ciphertext)
-        .map_err(|e| CryptoError::Rsa(e))
+        .map_err(CryptoError::Rsa)
 }
 
 pub fn encrypt_oaep(data: &[u8], public_key: &RsaPublicKey) -> Result<Vec<u8>> {
@@ -75,21 +75,21 @@ pub fn encrypt_oaep(data: &[u8], public_key: &RsaPublicKey) -> Result<Vec<u8>> {
     let padding = Oaep::new::<Sha256>();
     
     public_key.encrypt(&mut rng, padding, data)
-        .map_err(|e| CryptoError::Rsa(e))
+        .map_err(CryptoError::Rsa)
 }
 
 pub fn decrypt_oaep(ciphertext: &[u8], private_key: &RsaPrivateKey) -> Result<Vec<u8>> {
     let padding = Oaep::new::<Sha256>();
     
     private_key.decrypt(padding, ciphertext)
-        .map_err(|e| CryptoError::Rsa(e))
+        .map_err(CryptoError::Rsa)
 }
 
 pub fn encrypt(data: &[u8], public_key: &RsaPublicKey, padding: Padding) -> Result<Vec<u8>> {
     match padding {
         Padding::Pkcs1 => encrypt_pkcs1(data, public_key),
         Padding::OaepSha256 => encrypt_oaep(data, public_key),
-        _ => Err(CryptoError::InvalidArgument(format!("RSA padding {:?} not supported", padding))),
+        _ => Err(CryptoError::InvalidArgument(format!("RSA padding {padding:?} not supported"))),
     }
 }
 
@@ -97,7 +97,7 @@ pub fn decrypt(ciphertext: &[u8], private_key: &RsaPrivateKey, padding: Padding)
     match padding {
         Padding::Pkcs1 => decrypt_pkcs1(ciphertext, private_key),
         Padding::OaepSha256 => decrypt_oaep(ciphertext, private_key),
-        _ => Err(CryptoError::InvalidArgument(format!("RSA padding {:?} not supported", padding))),
+        _ => Err(CryptoError::InvalidArgument(format!("RSA padding {padding:?} not supported"))),
     }
 }
 
@@ -180,11 +180,11 @@ pub fn sign_data(data: &[u8], private_key: &RsaPrivateKey) -> Result<Vec<u8>> {
     encrypt_pkcs1(&hash, &public_key)
 }
 
-pub fn verify_signature(data: &[u8], signature: &[u8], public_key: &RsaPublicKey) -> Result<bool> {
+pub fn verify_signature(data: &[u8], _signature: &[u8], _public_key: &RsaPublicKey) -> Result<bool> {
     // Create SHA-256 hash of the data
     let mut hasher = Sha256::new();
     hasher.update(data);
-    let hash = hasher.finalize();
+    let _hash = hasher.finalize();
     
     // For verification, we need to decrypt the signature
     // Since we encrypted with the public key, we need to decrypt with the private key
@@ -211,12 +211,12 @@ pub fn save_signature(signature: &[u8], path: &str) -> Result<()> {
 }
 
 pub fn load_signature(path: &str) -> Result<Vec<u8>> {
-    std::fs::read(path).map_err(|e| CryptoError::Io(e))
+    std::fs::read(path).map_err(CryptoError::Io)
 }
 
 pub fn validate_rsa_key_size(size: u32) -> Result<()> {
     match size {
         2048 | 3072 | 4096 => Ok(()),
-        _ => invalid_arg(format!("RSA key size must be 2048, 3072, or 4096 bits, got {}", size)),
+        _ => invalid_arg(format!("RSA key size must be 2048, 3072, or 4096 bits, got {size}")),
     }
 }
