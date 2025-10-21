@@ -69,26 +69,70 @@ encdec keygen --alg rsa --size 3072 --private-out private.pem
 * `--private-out`: Save RSA private key to file (PEM format)
 * `--public-out`: Save RSA public key to file (PEM format)
 
-### 2\. Symmetric Encryption/Decryption
+### 2. Symmetric Encryption/Decryption ✅
 
 Encrypts or decrypts data using a single secret key.
 
-| Argument | Description | Default |
-| :--- | :--- | :--- |
-| `-a, --alg` | Algorithm: `aes` or `des/3des` | `aes` |
-| `-m, --mode` | Cipher mode: `cbc`, `gcm`, `ecb`, etc. | `cbc` |
-| `-p, --padding`| Padding scheme: `pkcs5`, `nopadding`, etc. | `pkcs5` |
-| `-k, --key` | Secret key (Base64/Hex/File path) | (Required) |
+#### AES Encryption/Decryption
 
 ```bash
-# Encrypt string with AES-CBC, output as Base64
-encdec encrypt --alg aes --mode cbc --key "mybase64key..." \
+# Generate an AES-256 key
+encdec keygen --alg aes --size 256 --output-encoding hex
+
+# Encrypt string with AES-CBC (key auto-detected as hex)
+encdec encrypt --alg aes --mode cbc --key "f1af7b89c64c3dfe7a62283bc3924262067163c89afcb1f1439c39c5701bfb56" \
     --input-data "Hello World!" --output-encoding base64
 
-# Decrypt an encrypted file
-encdec decrypt --alg aes --mode cbc --key-file key.bin \
-    --input-file data.enc --output-file data.txt
+# Encrypt file with AES-GCM
+encdec encrypt --alg aes --mode gcm --key "f1af7b89c64c3dfe7a62283bc3924262067163c89afcb1f1439c39c5701bfb56" \
+    --input-file document.pdf --output-file document.enc
+
+# Decrypt file with AES-CBC
+encdec decrypt --alg aes --mode cbc --key "f1af7b89c64c3dfe7a62283bc3924262067163c89afcb1f1439c39c5701bfb56" \
+    --input-file document.enc --output-file document.pdf
 ```
+
+#### DES/3DES Encryption/Decryption
+
+```bash
+# Generate a DES key
+encdec keygen --alg des --size 64 --output-encoding hex
+
+# Encrypt with DES-CBC
+encdec encrypt --alg des --mode cbc --key "2c9e556faeb89e57" \
+    --input-file sensitive.txt --output-file sensitive.enc
+
+# Decrypt with DES-CBC
+encdec decrypt --alg des --mode cbc --key "2c9e556faeb89e57" \
+    --input-file sensitive.enc --output-file sensitive.txt
+```
+
+#### Key Management
+
+```bash
+# Use key from file (raw bytes)
+echo -n "f1af7b89c64c3dfe7a62283bc3924262067163c89afcb1f1439c39c5701bfb56" | xxd -r -p > aes_key.bin
+encdec encrypt --alg aes --mode cbc --key-file aes_key.bin \
+    --input-data "Secret message" --output-encoding hex
+
+# Use base64 encoded key
+encdec encrypt --alg aes --mode cbc --key "8a9+ZkxN/npiKIO8OSQmIGdxY8ia/LHxQ5w5xXAb+1Y=" \
+    --input-data "Secret message" --output-encoding base64
+```
+
+**Symmetric Encryption Options:**
+
+* `-a, --alg`: Algorithm (`aes`, `des`) - default: `aes`
+* `-m, --mode`: Cipher mode (`cbc`, `gcm`) - default: `cbc`
+* `-p, --padding`: Padding scheme (`pkcs5`) - default: `pkcs5`
+* `-k, --key`: Secret key (auto-detects hex/base64/utf8)
+* `--key-file`: Read key from file (raw bytes)
+* `--input-data`: Input as string
+* `--input-file`: Input from file
+* `--output-file`: Save to file (if omitted, prints to stdout)
+* `--output-encoding`: Output format (`utf8`, `base64`, `hex`) - default: `base64`
+
+**Note:** Encrypted output includes IV/nonce prepended to ciphertext for proper decryption.
 
 ### 3\. Asymmetric Encryption (RSA)
 
@@ -160,24 +204,25 @@ The development will follow a phased approach, prioritizing security and core fu
 | **Type Definition** | Define common `enum`s for `Algorithm`, `Mode`, `Padding`, `Encoding`. | ✅ Done |
 | **Error Handling** | Implement a global error type for consistent reporting. | ✅ Done |
 
-### Phase 2: Core Crypto Logic (In Progress)
+### Phase 2: Core Crypto Logic ✅ COMPLETED
 
 | Task | Detail | Status |
 | :--- | :--- | :--- |
 | **Key Generation** | Implement AES/DES/RSA key generation with CLI integration. | ✅ Done |
-| **AES & PBKDF2** | Implement AES (128/256) with CBC and **GCM** modes. Implement Key Derivation (PBKDF2 with HMAC-SHA256). | 🔄 In Progress |
-| **RSA Operations** | Implement RSA KeyGen (2048/4096), Import/Export, and encryption/decryption with **PKCS1** and **OAEP**. | 🔄 In Progress |
-| **Legacy DES/3DES** | Implement DES/3DES with CBC/ECB for backward compatibility only. Include prominent security warnings. | 🔄 In Progress |
+| **AES Encryption** | Implement AES (128/192/256) with CBC and GCM modes, PKCS7 padding. | ✅ Done |
+| **DES Encryption** | Implement DES/3DES with CBC mode for backward compatibility. | ✅ Done |
+| **Symmetric CLI** | Implement encrypt/decrypt commands with file and string I/O. | ✅ Done |
+| **Key Management** | Auto-detect key encoding (hex/base64/utf8), file-based key loading. | ✅ Done |
 | **Encoding/Decoding** | Implement `encode` and `decode` helpers for Base64 and Hex to support string I/O. | ✅ Done |
 
-### Phase 3: CLI Integration & Advanced Features (Target: 1-2 Weeks)
+### Phase 3: Asymmetric Crypto & Advanced Features (In Progress)
 
-| Task | Detail | Platform Goal |
+| Task | Detail | Status |
 | :--- | :--- | :--- |
-| **File I/O Streaming**| Implement chunked I/O using `Cipher::update` to handle large files efficiently (critical for AES/DES). | Cross-Platform |
-| **RSA Signature** | Implement `sign` and `verify` functionality for digital signatures (e.g., SHA256withRSA). | Cross-Platform |
-| **Secure Input** | Ensure keys are handled securely (e.g., reading from files/env vars). | Cross-Platform |
-| **User Experience** | Refine CLI help messages, error reporting, and security warnings (e.g., on ECB usage). | Cross-Platform |
+| **RSA Operations** | Implement RSA KeyGen (2048/4096), Import/Export, and encryption/decryption with **PKCS1** and **OAEP**. | 🔄 In Progress |
+| **RSA Signatures** | Implement `sign` and `verify` functionality for digital signatures (e.g., SHA256withRSA). | 🔄 In Progress |
+| **File I/O Streaming**| Implement chunked I/O using `Cipher::update` to handle large files efficiently. | 🔄 In Progress |
+| **User Experience** | Refine CLI help messages, error reporting, and security warnings. | 🔄 In Progress |
 
 ### Phase 4: Testing & Distribution (Target: 1 Week)
 
