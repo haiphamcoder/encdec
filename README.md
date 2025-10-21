@@ -17,7 +17,7 @@
 * **File Handling:** Efficient chunked I/O for encrypting/decrypting large files without running out of memory.
 * **Encoding Support:** Seamlessly handle input/output data in UTF-8, Base64, and Hex formats.
 
-## 📦 Usage (Planned CLI Structure)
+## 📦 Usage
 
 The tool uses a standard sub-command structure for logical separation of tasks.
 
@@ -25,13 +25,49 @@ The tool uses a standard sub-command structure for logical separation of tasks.
 
 Generates a new SecretKey (AES/DES) or a KeyPair (RSA).
 
-```bash
-# Generate a 256-bit AES key and output to Base64
-encdec keygen aes --size 256 --output-encoding base64 
+#### AES Key Generation
 
-# Generate a 4096-bit RSA key pair (Private key is PKCS8, Public key is X509)
-encdec keygen rsa --size 4096 --private-out private.pem --public-out public.pem
-````
+```bash
+# Generate a 256-bit AES key (default, outputs to Base64)
+encdec keygen --alg aes --size 256
+
+# Generate a 128-bit AES key in hex format
+encdec keygen --alg aes --size 128 --output-encoding hex
+
+# Generate a 192-bit AES key in UTF-8 format
+encdec keygen --alg aes --size 192 --output-encoding utf8
+```
+
+#### DES/3DES Key Generation
+
+```bash
+# Generate a 64-bit DES key
+encdec keygen --alg des --size 64
+
+# Generate a 192-bit 3DES key
+encdec keygen --alg des --size 192 --output-encoding hex
+```
+
+#### RSA Key Pair Generation
+
+```bash
+# Generate 2048-bit RSA key pair and save to files
+encdec keygen --alg rsa --size 2048 --private-out private.pem --public-out public.pem
+
+# Generate 4096-bit RSA key pair (keys will be generated but not saved)
+encdec keygen --alg rsa --size 4096
+
+# Generate 3072-bit RSA key pair (only private key saved)
+encdec keygen --alg rsa --size 3072 --private-out private.pem
+```
+
+**Key Generation Options:**
+
+* `-a, --alg`: Algorithm (`aes`, `des`, `rsa`) - default: `aes`
+* `-s, --size`: Key size in bits (AES: 128/192/256; DES: 64/192; RSA: 2048/3072/4096) - default: `256`
+* `--output-encoding`: Output format (`utf8`, `base64`, `hex`) - default: `base64`
+* `--private-out`: Save RSA private key to file (PEM format)
+* `--public-out`: Save RSA public key to file (PEM format)
 
 ### 2\. Symmetric Encryption/Decryption
 
@@ -115,23 +151,24 @@ encdec/
 
 The development will follow a phased approach, prioritizing security and core functionality.
 
-### Phase 1: Setup & Core Structure (Target: 1 Week)
+### Phase 1: Setup & Core Structure ✅ COMPLETED
 
-| Task | Detail | Rust Crate / Files |
+| Task | Detail | Status |
 | :--- | :--- | :--- |
-| **Project Setup & CLI** | Initialize Rust project, set up **Clap** for CLI structure. | `main.rs`, `cli.rs`, `Cargo.toml` |
-| **Crypto Crate Selection**| Integrate `aes`, `gcm`, `block-modes`, `rsa`, `pbkdf2`. | Dependencies |
-| **Type Definition** | Define common `enum`s for `Algorithm`, `Mode`, `Padding`, `Encoding`. | `src/types.rs` |
-| **Error Handling** | Implement a global error type for consistent reporting. | `src/error.rs` (`thiserror`) |
+| **Project Setup & CLI** | Initialize Rust project, set up **Clap** for CLI structure. | ✅ Done |
+| **Crypto Crate Selection**| Integrate `aes`, `gcm`, `block-modes`, `rsa`, `pbkdf2`. | ✅ Done |
+| **Type Definition** | Define common `enum`s for `Algorithm`, `Mode`, `Padding`, `Encoding`. | ✅ Done |
+| **Error Handling** | Implement a global error type for consistent reporting. | ✅ Done |
 
-### Phase 2: Core Crypto Logic (Target: 2-3 Weeks)
+### Phase 2: Core Crypto Logic (In Progress)
 
-| Task | Detail | Priority |
+| Task | Detail | Status |
 | :--- | :--- | :--- |
-| **AES & PBKDF2** | Implement AES (128/256) with CBC and **GCM** modes. Implement Key Derivation (PBKDF2 with HMAC-SHA256). | High |
-| **RSA Operations** | Implement RSA KeyGen (2048/4096), Import/Export, and encryption/decryption with **PKCS1** and **OAEP**. | High |
-| **Legacy DES/3DES** | Implement DES/3DES with CBC/ECB for backward compatibility only. Include prominent security warnings. | Medium |
-| **Encoding/Decoding** | Implement `encode` and `decode` helpers for Base64 and Hex to support string I/O. | High |
+| **Key Generation** | Implement AES/DES/RSA key generation with CLI integration. | ✅ Done |
+| **AES & PBKDF2** | Implement AES (128/256) with CBC and **GCM** modes. Implement Key Derivation (PBKDF2 with HMAC-SHA256). | 🔄 In Progress |
+| **RSA Operations** | Implement RSA KeyGen (2048/4096), Import/Export, and encryption/decryption with **PKCS1** and **OAEP**. | 🔄 In Progress |
+| **Legacy DES/3DES** | Implement DES/3DES with CBC/ECB for backward compatibility only. Include prominent security warnings. | 🔄 In Progress |
+| **Encoding/Decoding** | Implement `encode` and `decode` helpers for Base64 and Hex to support string I/O. | ✅ Done |
 
 ### Phase 3: CLI Integration & Advanced Features (Target: 1-2 Weeks)
 
