@@ -24,6 +24,7 @@
 
 - **DES/Triple DES (3DES):** Both DES and 3DES are cryptographically weak or deprecated. **They should not be used for new applications.** `encdec` includes them for legacy compatibility only.
 - **ECB Mode:** The Electronic Codebook (ECB) mode of operation is **insecure** as it does not hide data patterns. **Always prefer modes like CBC, CTR, or GCM.**
+- **RSA Timing Attack (RUSTSEC-2023-0071):** The RSA implementation has a known timing side-channel vulnerability. **This is acceptable for local CLI usage** but should be avoided in network services where timing can be observed by attackers.
 - **Recommendation:** For modern applications, use **AES-256** in **GCM** mode. For key exchange and signatures, use **RSA 3072/4096** bits with **OAEP padding**.
 
 ## 🚀 Key Features
