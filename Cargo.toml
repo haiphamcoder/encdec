@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["encdec contributors"]
 description = "A comprehensive cryptography CLI utility for encryption, decryption, and digital signatures"
 license = "MIT"
-repository = "https://github.com/encdec/encdec"
+repository = "https://github.com/haiphamcoder/encdec"
 keywords = ["cryptography", "encryption", "cli", "aes", "rsa", "security"]
 categories = ["command-line-utilities", "cryptography", "security"]
 
