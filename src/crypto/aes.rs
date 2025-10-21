@@ -8,6 +8,7 @@ use cbc::cipher::{BlockEncryptMut, BlockDecryptMut, KeyIvInit};
 use crate::error::{CryptoError, Result};
 use crate::types::{Mode, Padding, OutputEncoding};
 use crate::util::{base64_encode, hex_encode, base64_decode, hex_decode};
+use crate::streaming::StreamingWriter;
 
 pub fn generate_key(size_bits: u32) -> Result<Vec<u8>> {
     let size_bytes = (size_bits / 8) as usize;
@@ -151,6 +152,94 @@ pub fn decrypt_gcm(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> Result<Vec<u8
         .map_err(|_| CryptoError::Aead)?;
     
     Ok(plaintext)
+}
+
+pub fn encrypt_file_streaming(
+    input_path: &str,
+    output_path: &str,
+    key: &[u8],
+    mode: Mode,
+    padding: Padding,
+) -> Result<u64> {
+    let file_size = std::fs::metadata(input_path)?.len();
+    
+    match mode {
+        Mode::Cbc => {
+            // For CBC streaming, we need to handle the entire file as one operation
+            // because CBC requires the previous block's ciphertext for the next block
+            let data = std::fs::read(input_path)?;
+            let iv = generate_iv()?;
+            let ciphertext = encrypt_cbc(&data, key, &iv)?;
+            
+            let mut writer = StreamingWriter::new_optimized(output_path, file_size)?;
+            writer.write_chunk(&iv)?;
+            writer.write_chunk(&ciphertext)?;
+            writer.flush()?;
+            
+            Ok((iv.len() + ciphertext.len()) as u64)
+        }
+        Mode::Gcm => {
+            // For GCM streaming, we need to handle the entire file as one operation
+            // because GCM requires authentication of the entire message
+            let data = std::fs::read(input_path)?;
+            let nonce = generate_gcm_nonce()?;
+            let ciphertext = encrypt_gcm(&data, key, &nonce)?;
+            
+            let mut writer = StreamingWriter::new_optimized(output_path, file_size)?;
+            writer.write_chunk(&nonce)?;
+            writer.write_chunk(&ciphertext)?;
+            writer.flush()?;
+            
+            Ok((nonce.len() + ciphertext.len()) as u64)
+        }
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
+    }
+}
+
+pub fn decrypt_file_streaming(
+    input_path: &str,
+    output_path: &str,
+    key: &[u8],
+    mode: Mode,
+    padding: Padding,
+) -> Result<u64> {
+    match mode {
+        Mode::Cbc => {
+            // For CBC streaming, we need to handle the entire file as one operation
+            let data = std::fs::read(input_path)?;
+            if data.len() < 16 {
+                return Err(CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
+            }
+            
+            let (iv, ciphertext) = data.split_at(16);
+            let plaintext = decrypt_cbc(ciphertext, key, iv)?;
+            
+            let file_size = std::fs::metadata(input_path)?.len();
+            let mut writer = StreamingWriter::new_optimized(output_path, file_size)?;
+            writer.write_chunk(&plaintext)?;
+            writer.flush()?;
+            
+            Ok(plaintext.len() as u64)
+        }
+        Mode::Gcm => {
+            // For GCM streaming, we need to handle the entire file as one operation
+            let data = std::fs::read(input_path)?;
+            if data.len() < 12 {
+                return Err(CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
+            }
+            
+            let (nonce, ciphertext) = data.split_at(12);
+            let plaintext = decrypt_gcm(ciphertext, key, nonce)?;
+            
+            let file_size = std::fs::metadata(input_path)?.len();
+            let mut writer = StreamingWriter::new_optimized(output_path, file_size)?;
+            writer.write_chunk(&plaintext)?;
+            writer.flush()?;
+            
+            Ok(plaintext.len() as u64)
+        }
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
+    }
 }
 
 pub fn generate_gcm_nonce() -> Result<Vec<u8>> {

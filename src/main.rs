@@ -3,6 +3,7 @@ mod types;
 mod error;
 mod util;
 mod crypto;
+mod streaming;
 
 fn main() {
     if let Err(error) = cli::run() {

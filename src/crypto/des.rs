@@ -6,6 +6,7 @@ use cbc::cipher::{BlockEncryptMut, BlockDecryptMut, KeyIvInit};
 use crate::error::{CryptoError, Result};
 use crate::types::{Mode, Padding, OutputEncoding};
 use crate::util::{base64_encode, hex_encode, base64_decode, hex_decode};
+use crate::streaming::{StreamingWriter};
 
 pub fn generate_des_key() -> Result<Vec<u8>> {
     let mut key = vec![0u8; 8]; // DES uses 64-bit keys (8 bytes)
@@ -105,5 +106,60 @@ pub fn decrypt(ciphertext: &[u8], key: &[u8], mode: Mode, _padding: Padding, iv:
     match mode {
         Mode::Cbc => decrypt_cbc(ciphertext, key, iv),
         _ => Err(CryptoError::InvalidArgument(format!("DES mode {:?} not yet implemented", mode))),
+    }
+}
+
+pub fn encrypt_file_streaming(
+    input_path: &str,
+    output_path: &str,
+    key: &[u8],
+    mode: Mode,
+    padding: Padding,
+) -> Result<u64> {
+    match mode {
+        Mode::Cbc => {
+            // For DES CBC streaming, we need to handle the entire file as one operation
+            let data = std::fs::read(input_path)?;
+            let iv = generate_iv()?;
+            let ciphertext = encrypt_cbc(&data, key, &iv)?;
+            
+            let file_size = std::fs::metadata(input_path)?.len();
+            let mut writer = StreamingWriter::new_optimized(output_path, file_size)?;
+            writer.write_chunk(&iv)?;
+            writer.write_chunk(&ciphertext)?;
+            writer.flush()?;
+            
+            Ok((iv.len() + ciphertext.len()) as u64)
+        }
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
+    }
+}
+
+pub fn decrypt_file_streaming(
+    input_path: &str,
+    output_path: &str,
+    key: &[u8],
+    mode: Mode,
+    padding: Padding,
+) -> Result<u64> {
+    match mode {
+        Mode::Cbc => {
+            // For DES CBC streaming, we need to handle the entire file as one operation
+            let data = std::fs::read(input_path)?;
+            if data.len() < 8 {
+                return Err(CryptoError::InvalidArgument("Invalid encrypted data format".to_string()));
+            }
+            
+            let (iv, ciphertext) = data.split_at(8);
+            let plaintext = decrypt_cbc(ciphertext, key, iv)?;
+            
+            let file_size = std::fs::metadata(input_path)?.len();
+            let mut writer = StreamingWriter::new_optimized(output_path, file_size)?;
+            writer.write_chunk(&plaintext)?;
+            writer.flush()?;
+            
+            Ok(plaintext.len() as u64)
+        }
+        _ => Err(CryptoError::InvalidArgument(format!("Streaming not supported for mode {:?}", mode))),
     }
 }
