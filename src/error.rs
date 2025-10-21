@@ -17,7 +17,7 @@ pub enum CryptoError {
     HexDecode(#[from] hex::FromHexError),
 
     #[error("AEAD error")]
-    Aead(#[from] aead::Error),
+    Aead,
 
     #[error("RSA error: {0}")]
     Rsa(#[from] rsa::errors::Error),
@@ -26,7 +26,7 @@ pub enum CryptoError {
     Pkcs8(#[from] pkcs8::Error),
 
     #[error("SPKI error: {0}")]
-    Spki(#[from] spki::Error),
+    Spki(#[from] pkcs8::spki::Error),
 
     #[error("{0}")]
     Message(String),

@@ -1,5 +1,6 @@
 use crate::types::{Algorithm, Mode, OutputEncoding, Padding};
-use anyhow::{Result, bail};
+use crate::crypto::{aes, des, rsa};
+use crate::error::Result;
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -118,17 +119,41 @@ pub fn run() -> Result<()> {
 
 fn handle_keygen(args: KeygenArgs) -> Result<()> {
     match args.algorithm {
-        Algorithm::Aes | Algorithm::Des => {
-            println!(
-                "[keygen] alg={:?} size={} output_encoding={:?}",
-                args.algorithm, args.size, args.output_encoding
-            );
+        Algorithm::Aes => {
+            let key = aes::generate_key(args.size)?;
+            let formatted = aes::format_key(&key, args.output_encoding);
+            println!("AES-{} key ({:?}): {}", args.size, args.output_encoding, formatted);
+        }
+        Algorithm::Des => {
+            let key = if args.size == 64 {
+                des::generate_des_key()?
+            } else if args.size == 192 {
+                des::generate_3des_key()?
+            } else {
+                return Err(crate::error::CryptoError::InvalidArgument(
+                    "DES key size must be 64 or 192 bits".to_string()
+                ));
+            };
+            let formatted = des::format_key(&key, args.output_encoding);
+            println!("DES/3DES key ({:?}): {}", args.output_encoding, formatted);
         }
         Algorithm::Rsa => {
-            println!(
-                "[keygen] alg=RSA size={} private_out={:?} public_out={:?}",
-                args.size, args.private_out, args.public_out
-            );
+            rsa::validate_rsa_key_size(args.size)?;
+            let (private_key, public_key) = rsa::generate_keypair(args.size)?;
+            
+            if let Some(ref private_path) = args.private_out {
+                rsa::save_private_key_pem(&private_key, private_path)?;
+                println!("RSA private key saved to: {}", private_path);
+            }
+            
+            if let Some(ref public_path) = args.public_out {
+                rsa::save_public_key_pem(&public_key, public_path)?;
+                println!("RSA public key saved to: {}", public_path);
+            }
+            
+            if args.private_out.is_none() && args.public_out.is_none() {
+                println!("RSA-{} key pair generated (use --private-out and --public-out to save)", args.size);
+            }
         }
     }
     Ok(())
@@ -166,7 +191,7 @@ fn handle_decrypt(args: CryptoArgs) -> Result<()> {
 
 fn handle_sign(args: SignArgs) -> Result<()> {
     if args.algorithm != Algorithm::Rsa {
-        bail!("sign currently supports RSA only");
+        return Err(crate::error::CryptoError::Message("sign currently supports RSA only".to_string()));
     }
     println!(
         "[sign] alg=RSA sig_alg={} priv_key={} input={} out_sig={}",
@@ -177,7 +202,7 @@ fn handle_sign(args: SignArgs) -> Result<()> {
 
 fn handle_verify(args: VerifyArgs) -> Result<()> {
     if args.algorithm != Algorithm::Rsa {
-        bail!("verify currently supports RSA only");
+        return Err(crate::error::CryptoError::Message("verify currently supports RSA only".to_string()));
     }
     println!(
         "[verify] alg=RSA sig_alg={} pub_key={} input={} sig={}",
@@ -188,10 +213,10 @@ fn handle_verify(args: VerifyArgs) -> Result<()> {
 
 fn validate_input_source(input_data: &Option<String>, input_file: &Option<String>) -> Result<()> {
     if input_data.is_some() && input_file.is_some() {
-        bail!("Provide either --input-data or --input-file, not both");
+        return Err(crate::error::CryptoError::Message("Provide either --input-data or --input-file, not both".to_string()));
     }
     if input_data.is_none() && input_file.is_none() {
-        bail!("Must provide one of --input-data or --input-file");
+        return Err(crate::error::CryptoError::Message("Must provide one of --input-data or --input-file".to_string()));
     }
     Ok(())
 }
